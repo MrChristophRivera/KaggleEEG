@@ -1,3 +1,8 @@
+import numpy as np
+import numpy.linalg as la
+import pandas as pd
+
+
 def extract_correlations(data):
     """Calculate the correlation matrix for time series with its associated eigenvalues and the eigenvalues
     Parameters:
@@ -30,3 +35,4 @@ def extract_correlations(data):
     eigs.index = map(lambda x: 'eig_%d' % (x + 1), list(eigs.index))
 
     return pd.DataFrame(pd.concat([corr, eigs])).T
+
