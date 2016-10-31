@@ -3,6 +3,7 @@
 from os import listdir
 from os.path import join, split
 
+import numpy as np
 import pandas as pd
 from scipy.io import loadmat
 
@@ -141,3 +142,15 @@ def get_stats():
     return pd.concat(map(get_stats_from_one_file, files))
 
 
+############
+
+def extract_correlations(df):
+    """Calculate the correlation between the signals within a data frame and returns as a Series"""
+
+    # calcualte the correlation matrix, convert the lower left triangle into a np.nan.
+    c = df.corr()
+    c.values[np.tril_indices_from(c)] = np.nan
+
+    # Unstack, return the values that are not null and return
+    c = c.unstack()
+    return c[c.isnull() == False]
