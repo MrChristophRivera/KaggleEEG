@@ -1,6 +1,7 @@
 import numpy as np
 import numpy.linalg as la
 import pandas as pd
+from scipy import signal
 
 
 def extract_correlations(data):
@@ -35,3 +36,29 @@ def extract_correlations(data):
     eigs.index = map(lambda x: 'eig_%d' % (x + 1), list(eigs.index))
 
     return pd.DataFrame(pd.concat([corr, eigs])).T
+
+
+def transform_psd(data, detrend=True):
+    """Generates the FFT powerspectrum using the scipy.signal periodiogram function with sampling rate of 400
+    Parameters:
+        data(pd.DataFrame): The data with the time series
+        detrend(bool): if true, detrend with the mean
+    Return:
+        psd_df(pd.DataFrame): a data frame with the PSD
+    """
+
+    def _psd(x, index=1):
+        """ calculate the psd and return as df"""
+        freqs, ppx = signal.periodogram(x, fs=400)
+        name = 'channel %d ' % index
+
+        return pd.DataFrame({name: ppx}, index=freqs, )
+
+    # copy the data
+    data = data.copy()
+
+    if detrend:
+        data.apply(lambda x: x - x.mean())
+
+    # calculate the psd
+    return pd.concat([_psd(data.iloc[:, i], i + 1) for i in range(16)], axis=1)
