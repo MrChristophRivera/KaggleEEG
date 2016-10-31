@@ -35,4 +35,3 @@ def extract_correlations(data):
     eigs.index = map(lambda x: 'eig_%d' % (x + 1), list(eigs.index))
 
     return pd.DataFrame(pd.concat([corr, eigs])).T
-
