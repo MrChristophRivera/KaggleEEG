@@ -50,42 +50,6 @@ def extract_correlations(data, frequency_domain=False):
 ########################################################################################################################
 
 
-def psi(psd_series, index=0):
-    """Gets thePower Spectral Intensity of the standard bands for one time series
-    This is using the standard bands of:
-        δ(0.5–4Hz), θ(4–7Hz), α(8–12Hz), β(12–30Hz), and γ(30–100Hz)
-    Parameters:
-        psd_df(pd.DataFrame): a data frame with index frequencies and power.
-        index(int): an index for labeling
-    Returns:
-        bands_df(pd.DataFrame): a data frame with the band sums
-    """
-
-    # compute the sums
-
-    bands_df = pd.DataFrame({'channel %d δ(0.5–4Hz)' % (index + 1): psd_series[psd_series.between(0, 0.5)].sum(),
-                             'channel %d θ(4–7Hz) ' % (index + 1): psd_series[psd_series.between(4, 7)].sum(),
-                             'channel %d α(8–12Hz)' % (index + 1): psd_series[psd_series.between(8, 12)].sum(),
-                             'channel %d  β(12–30Hz)' % (index + 1): psd_series[psd_series.between(12, 30)].sum(),
-                             'channel %d γ(30–100Hz)' % (index + 1): psd_series[psd_series.between(30, 100)].sum()},
-                            index=[1])
-    return bands_df
-
-
-def get_psi(psd_df):
-    """Gets thePower Spectral Intensity of the standard bands for all time series.
-    This is using the standard bands of:
-        δ(0.5–4Hz), θ(4–7Hz), α(8–12Hz), β(12–30Hz), and γ(30–100Hz)
-    Parameters:
-        psd_df(pd.DataFrame): a data frame with index frequencies and power.
-    Returns:
-        psi_df(pd.DataFrame): a data frame with the band sums
-    """
-    # do the calcs
-    psi_df = [psi(psd_df.iloc[:, i], i) for i in range(16)]
-    return pd.concat(psi_df, axis=1)
-
-
 def psi_rir(psd_series, index=0):
     """Gets thePower Spectral Intensity of the standard bands for one time series
     This is using the standard bands of:
@@ -102,7 +66,9 @@ def psi_rir(psd_series, index=0):
                      psd_series[psd_series.between(4, 7)].sum(),
                      psd_series[psd_series.between(8, 12)].sum(),
                      psd_series[psd_series.between(12, 30)].sum(),
-                     psd_series[psd_series.between(30, 100)].sum()])
+                     psd_series[psd_series.between(30, 70)].sum(),
+                     psd_series[psd_series.between(70, 180)].sum()
+                     ])
 
     # compute the values for the rir
     rirs = psis / psis.sum()
@@ -112,18 +78,20 @@ def psi_rir(psd_series, index=0):
                              'channel %d θ(4–7Hz) ' % (index + 1): psis[1],
                              'channel %d α(8–12Hz)' % (index + 1): psis[2],
                              'channel %d  β(12–30Hz)' % (index + 1): psis[3],
-                             'channel %d γ(30–100Hz)' % (index + 1): psis[4],
+                             'channel %d low γ(30–70Hz)' % (index + 1): psis[4],
+                             'channel %d high γ(70–180Hz)' % (index + 1): psis[5],
                              'channel %d RIR1' % (index + 1): rirs[0],
                              'channel %d RIR2' % (index + 1): rirs[1],
                              'channel %d RIR3' % (index + 1): rirs[2],
                              'channel %d RIR4' % (index + 1): rirs[3],
-                             'channel %d RIR5' % (index + 1): rirs[4]},
-                            index=[1])
+                             'channel %d RIR5' % (index + 1): rirs[4],
+                             'channel %d RIR6' % (index + 1): rirs[5]
+                             }, index=[1])
 
     return bands_df
 
 
-def extract_psi_and_rir(psd_df):
+def compute_psi_and_rir(psd_df):
     """computes the Power Spectral Intensity and the Relative Intenstiy Ratio of the standard bands for all time series.
     This is using the standard bands of:
         δ(0.5–4Hz), θ(4–7Hz), α(8–12Hz), β(12–30Hz), and γ(30–100Hz)
@@ -134,9 +102,8 @@ def extract_psi_and_rir(psd_df):
     """
 
     # create
-    psi_df = [psi(psd_df.iloc[:, i], i) for i in range(16)]
+    psi_df = [psi_rir(psd_df.iloc[:, i], i) for i in range(16)]
     return pd.concat(psi_df, axis=1)
-
 
 class FFT_Features(object):
     """ Class for extracting multiple features from a fft
