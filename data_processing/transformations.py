@@ -26,7 +26,7 @@ def psd(x, index=1):
 
 
 def transform_psd(data, detrend=True):
-    """Generates the FFT powerspectrum using the scipy.signal periodiogram function with sampling rate of 400
+    """Generates the FFT power spectrum using the scipy.signal periodiogram function with sampling rate of 400
     Parameters:
         data(pd.DataFrame): The data with the time series
         detrend(bool): if true, detrend with the mean
