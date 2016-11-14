@@ -1,10 +1,11 @@
 # Functions for handling data processing
 
 from os import listdir
-from os.path import join, split
+from os.path import join, split, isfile
 
-import numpy as np
 import pandas as pd
+from dask import delayed, compute
+import dask
 from scipy.io import loadmat
 
 
@@ -143,12 +144,11 @@ def get_stats():
 
 
 class Processor(object):
-
     def __init__(self, list_of_functions, dtrend=None):
         self.list_of_functions = list_of_functions
         self.dtrend = dtrend
 
-    def process_folder(train_path, function_name):
+    def process_folder(self, train_path, function_name):
         """ Apply function to all files in
         """
         seizure_df = pd.DataFrame()
@@ -157,7 +157,8 @@ class Processor(object):
         print(train_path)
         for patient_path in train_path:
             # This is how I speed up processing 4x by making full use of all cores in the CPUs.
-            values = [delayed(function_name)('\\'.join([patient_path, f])) for f in listdir(patient_path) if isfile('/'.join([patient_path, f]))]
+            values = [delayed(function_name)('\\'.join([patient_path, f])) for f in listdir(patient_path) if
+                      isfile('/'.join([patient_path, f]))]
             result = compute(*values, get=dask.multiprocessing.get)
             results.append(result)
         return results

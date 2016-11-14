@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import numpy as np
 import numpy.linalg as la
 import pandas as pd
@@ -57,7 +60,7 @@ def psi_rir(psd_series, index=0):
     This is using the standard bands of:
         δ(0.5–4Hz), θ(4–7Hz), α(8–12Hz), β(12–30Hz), and γ(30–100Hz)
     Parameters:
-        psd_df(pd.DataFrame): a data frame with index frequencies and power.
+        psd_series(pd.DataFrame): a data frame with index frequencies and power.
         index(int): an index for labeling
     Returns:
         bands_df(pd.DataFrame): a data frame with the band sums
@@ -113,40 +116,40 @@ def psi(psd_series, index=0):
     This is using the standard bands of:
         δ(0.5–4Hz), θ(4–7Hz), α(8–12Hz), β(12–30Hz), and γ(30–100Hz)
     Parameters:
-        psd_df(pd.DataFrame): a data frame with index frequencies and power.
+        psd_series(pd.DataFrame): a data frame with index frequencies and power.
         index(int): an index for labeling
     Returns:
         bands_df(pd.DataFrame): a data frame with the band sums
     """
 
-    # compute the values for the psi and place into an array
-    psi = pd.Series([psd_series[psd_series.between(0.5, 4)].sum(),
-                     psd_series[psd_series.between(4, 7)].sum(),
-                     psd_series[psd_series.between(8, 12)].sum(),
-                     psd_series[psd_series.between(12, 30)].sum(),
-                     psd_series[psd_series.between(30, 70)].sum(),
-                     psd_series[psd_series.between(70, 180)].sum()
-                     ])
+    # compute the values for the psi_ and place into an array
+    psi_ = pd.Series([psd_series[psd_series.between(0.5, 4)].sum(),
+                      psd_series[psd_series.between(4, 7)].sum(),
+                      psd_series[psd_series.between(8, 12)].sum(),
+                      psd_series[psd_series.between(12, 30)].sum(),
+                      psd_series[psd_series.between(30, 70)].sum(),
+                      psd_series[psd_series.between(70, 180)].sum()
+                      ])
 
-    psi.index = ['channel %d δ(0.5–4Hz)' % (index + 1),
-                 'channel %d θ(4–7Hz)' % (index + 1),
-                 'channel %d α(8–12Hz)' % (index + 1),
-                 'channel %d  β(12–30Hz)' % (index + 1),
-                 'channel %d low γ(30–70Hz)' % (index + 1),
-                 'channel %d high γ(70–180Hz)' % (index + 1)]
-    return pd.DataFrame(psi)
+    psi_.index = ['channel %d δ(0.5–4Hz)' % (index + 1),
+                  'channel %d θ(4–7Hz)' % (index + 1),
+                  'channel %d α(8–12Hz)' % (index + 1),
+                  'channel %d  β(12–30Hz)' % (index + 1),
+                  'channel %d low γ(30–70Hz)' % (index + 1),
+                  'channel %d high γ(70–180Hz)' % (index + 1)]
+    return pd.DataFrame(psi_)
 
 
 def rir(psis_df, index=0):
     """computes the Relative Intensity Ratio given Spectral bands as a data frame"""
     # make a copy
-    rir_df = psis_df.copy()
+    rir_df_ = psis_df.copy()
 
     # compute the rir, update the index name and return
-    rir_df = rir_df / rir_df.sum()
+    rir_df_ = rir_df_ / rir_df_.sum()
 
-    rir_df.index = ['channel %d RIR %d ' % (index + 1, i + 1) for i in range(len(rir_df))]
-    return rir_df
+    rir_df_.index = ['channel %d RIR %d ' % (index + 1, i + 1) for i in range(len(rir_df_))]
+    return rir_df_
 
 
 def spectral_entropy(rir):
