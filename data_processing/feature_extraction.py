@@ -309,14 +309,6 @@ def extract_skew(time_series, num=16):
     return df.T
 
 
-def extract_time_domain_parameters(time_series, num=16):
-    """Extract features for all the time domain"""
-    return pd.concat([extract_var(time_series, 16),
-                      extract_skew(time_series, 16),
-                      extract_kurtosis(time_series, 16),
-                      extract_correlations(time_series)], axis=1)
-
-
 def extract_hfd_features(df, Kmax=5):
     """ Compute Hjorth Fractal Dimension of a data frame with 16 time series data, kmax
      is an HFD parameter
@@ -351,3 +343,14 @@ def extract_hfd_features(df, Kmax=5):
         index += 1
 
     return df_features
+
+
+def extract_time_domain_features(time_series, num=16):
+    """Extract features for all the time domain"""
+    return pd.concat([extract_var(time_series, 16),
+                      extract_skew(time_series, 16),
+                      extract_kurtosis(time_series, 16),
+                      extract_correlations(time_series),
+                      extract_hfd_features(time_series),
+                      extract_petrosian_fd(time_series)
+                      ], axis=1)
