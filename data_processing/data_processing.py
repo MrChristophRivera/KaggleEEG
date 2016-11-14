@@ -15,7 +15,7 @@ def convert_index_to_timedelta(index, sampling_rate=400):
     return pd.to_timedelta(index, 's')
 
 
-def load_data(path, convert_index=True):
+def load_data(path, convert_index=False):
     """converts the data to a pandas object
     Parameters:
         path(str): absolute path to the m file
@@ -72,8 +72,10 @@ def extract_base_stats(data, patient=1, number=1, condition=0):
     return res
 
 
-def parse_filename(filename):
+def parse_filename(filename, split_file=False):
     """Parses m filename to get the pertinent information"""
+    if split_file:
+        filename = split(filename)[1]
 
     # strip out the .mat
     filename = filename.replace('.mat', '')

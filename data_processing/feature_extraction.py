@@ -221,12 +221,12 @@ class FFT_Features(object):
         psi_df = pd.concat(self.psi).T
         rir_df = pd.concat(self.rir).T
         features = pd.concat([psi_df, rir_df, self.correlation, self.spectral_entropy], axis=1)
-        self.features = features.apply(lambda x: float(x))
+        self.features = pd.DataFrame(features.apply(lambda x: float(x)))
 
 
 def extract_fft_features(time_series):
     '''Given ts returns a df of features from freq domain'''
-    return FFT_Features(time_series).features
+    return FFT_Features(time_series).features.T
 
 
 ########################################################################################################################
