@@ -10,3 +10,12 @@ def scale(x):
     Returns:
         x_scaled(pd.Series)"""
     return (x - np.mean(x)) / np.std(x)
+
+def normalize(df, dtrend):
+    """ Normalize df according to dtrend.
+
+    :param df:
+    :param dtrend:
+    :return:
+    """
+    pass
