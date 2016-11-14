@@ -177,7 +177,7 @@ class Processor(object):
         path = '\\'.join([base_path, target_path])
         print('processing', path, f)
         df, sampling_rate, sequence = load_data(join(path, f))
-        df = normalize(df, dtrend)
+        df = self.normalize(df)
         # Determine if this is an inter or preictal dataset and put in corresponding bucket.
         split_string = f.replace('.', '_').split('_')
         feature_df_list = []
@@ -186,7 +186,7 @@ class Processor(object):
             func_result_df = func(df)
             feature_df_list.append(func_result_df)
         feature_df = pd.concat(feature_df_list, 1)
-        feature_df = append_index(feature_df, split_string)
+        feature_df = self.append_index(feature_df, split_string)
         return feature_df
 
     def append_index(df, split_string):
