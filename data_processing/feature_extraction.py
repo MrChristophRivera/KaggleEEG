@@ -10,6 +10,7 @@ def extract_correlations(data, frequency_domain=False):
     Used for both caluculating frequency domain and non frequency domain.
     Parameters:
         data(pd.DataFrame): Data frame with the time series data
+        frequency_domain(bool)
     Returns:
         corr(pd.Series): The correlations the time series
         eigs(pd.Series): The eigenvalues.
@@ -105,18 +106,123 @@ def compute_psi_and_rir(psd_df):
     psi_df = [psi_rir(psd_df.iloc[:, i], i) for i in range(16)]
     return pd.concat(psi_df, axis=1)
 
-class FFT_Features(object):
-    """ Class for extracting multiple features from a fft
-        These features include:
-            1. PowerSpectral Intensity
-            2. Relative Intensity.
-            3. Correlation of the PSD
-            4. eigen values of the psd
+
+def psi(psd_series, index=0):
+    """Gets thePower Spectral Intensity of the standard bands for one time series
+    This is using the standard bands of:
+        δ(0.5–4Hz), θ(4–7Hz), α(8–12Hz), β(12–30Hz), and γ(30–100Hz)
+    Parameters:
+        psd_df(pd.DataFrame): a data frame with index frequencies and power.
+        index(int): an index for labeling
+    Returns:
+        bands_df(pd.DataFrame): a data frame with the band sums
     """
 
-    def __init__(self, data):
-        # transform the time sereis to compute the psd
-        self.psd = transform_psd(data)
+    # compute the values for the psi and place into an array
+    psi = pd.Series([psd_series[psd_series.between(0.5, 4)].sum(),
+                     psd_series[psd_series.between(4, 7)].sum(),
+                     psd_series[psd_series.between(8, 12)].sum(),
+                     psd_series[psd_series.between(12, 30)].sum(),
+                     psd_series[psd_series.between(30, 70)].sum(),
+                     psd_series[psd_series.between(70, 180)].sum()
+                     ])
+
+    psi.index = ['channel %d δ(0.5–4Hz)' % (index + 1),
+                 'channel %d θ(4–7Hz)' % (index + 1),
+                 'channel %d α(8–12Hz)' % (index + 1),
+                 'channel %d  β(12–30Hz)' % (index + 1),
+                 'channel %d low γ(30–70Hz)' % (index + 1),
+                 'channel %d high γ(70–180Hz)' % (index + 1)]
+    return pd.DataFrame(psi)
+
+
+def rir(psis_df, index=0):
+    """computes the Relative Intensity Ratio given Spectral bands as a data frame"""
+    # make a copy
+    rir_df = psis_df.copy()
+
+    # compute the rir, update the index name and return
+    rir_df = rir_df / rir_df.sum()
+
+    rir_df.index = ['channel %d RIR %d ' % (index + 1, i + 1) for i in range(len(rir_df))]
+    return rir_df
+
+
+def spectral_entropy(rir):
+    """ computes the spectal etropy given relative intensity ratios"""
+    return np.sum(rir.apply(lambda x: x * np.log(x)))
+
+
+class FFT_Features(object):
+    """ Class for extracting multiple features from a fft and places into a dataframe
+        These features include:
+            1. PowerSpectral Intensity at several different bands (done)
+            2. Relative Intensity Ratio. (done)
+            3. Correlation of the PSD (done)
+            4. eigen values of the psd (done)
+            5. Spectral Entropy at several bands (done)
+    """
+
+    def __init__(self, data=None):
+        # set up the attributes of interests
+        self.num = None
+        self.psd = None
+
+        # for the data
+        self.psi = None
+        self.rir = None
+        self.correlation = None
+        self.spectral_entropy = None
+        self.features = None
+        if data is not None:
+            self.psd = transform_psd(data)
+            self.num = len(data.columns)
+            self.compute_features()
+
+    def compute_features(self, data=None):
+        """Computes the fetures as defined by the class and returns the values in a 1 row df"""
+        if data is not None:
+            self.psd = transform_psd(data)
+            self.num = len(data.columns)
+            self.psd = transform_psd(data)
+
+        # compute some features
+        self.psi = self.__compute_psis()
+        self.rir = self.__compute_rirs()
+        self.correlation = extract_correlations(self.psd, frequency_domain=True)
+        self.spectral_entropy = self.__compute_spectral_entropy()
+
+        # organize the features and return
+        self.__format_data()
+
+    def __compute_psis(self):
+        """computes the psis and places into list of data frames"""
+        # get the number of columns
+
+        return [psi(self.psd.iloc[:, i], i) for i in range(self.num)]
+
+    def __compute_rirs(self):
+        """ computes the spectral intensity rations"""
+        return [rir(self.psi[i], i) for i in range(self.num)]
+
+    def __compute_spectral_entropy(self):
+        """computes the spectral entropys"""
+        # compute the spectral entropy for each and organize into a data frame
+        df = pd.Series([spectral_entropy(self.rir[i]) for i in range(self.num)])
+        df.index = ['SpectralEntropy %d' % (i + 1) for i in range(self.num)]
+        return pd.DataFrame(df).T
+
+    def __format_data(self):
+        """ A helper function to format the features into a data frame"""
+        psi_df = pd.concat(self.psi).T
+        rir_df = pd.concat(self.rir).T
+        features = pd.concat([psi_df, rir_df, self.correlation, self.spectral_entropy], axis=1)
+        self.features = features.apply(lambda x: float(x))
+
+
+def extract_fft_features(time_series):
+    '''Given ts returns a df of features from freq domain'''
+    return FFT_Features(time_series).features
 
 
 ########################################################################################################################
