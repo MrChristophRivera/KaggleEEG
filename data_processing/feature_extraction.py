@@ -1,6 +1,7 @@
 import numpy as np
 import numpy.linalg as la
 import pandas as pd
+from scipy.stats import kurtosis, skew
 
 from transformations import transform_psd
 
@@ -230,10 +231,11 @@ def extract_fft_features(time_series):
 ########################################################################################################################
 
 def petrosian_fd(ts):
-    """ Computes the Fractal Dimension using one of Petrosian's Methods. It is a simple yet inexact method for computing
-    the fractal dimension. This algo uses method c) as per Esteller et al 2001.
+    """ Computes the Fractal Dimension using one of Petrosians Methods. It is a simple yet inexact method for
+    computing the fractal dimension. This algo uses method c) as per Esteller et al 2001.
 
     It estimates the fractal dimension as:
+
     PFD =log10(N)/(log10(N) +log10(N/(N+0.4Ndelta)))
     where: N is the length of the series, (number of time points), Ndelta is the number of sign changes.
     Parameters:
@@ -265,3 +267,51 @@ def extract_petrosian_fd(time_series):
         pfd_df(pd.DataFrame): a row data frame with the PFD
     """
 
+    # compute the values, place in a data frame and return
+    pfd_df = pd.DataFrame(time_series.apply(petrosian_fd))
+    pfd_df.index = ['PFD %d' % (i + 1) for i in range(len(time_series.columns))]
+    return pfd_df.T
+
+
+def extract_means(time_series, num=16):
+    '''gets the means'''
+    if num is None:
+        num = len(time_series.columns)
+    df = pd.DataFrame(time_series.mean())
+    df.index = ['Mean %d' % (i + 1) for i in range(num)]
+    return df.T
+
+
+def extract_var(time_series, num=16):
+    '''gets the vars'''
+    if num is None:
+        num = len(time_series.columns)
+    df = pd.DataFrame(time_series.var())
+    df.index = ['Variance %d' % (i + 1) for i in range(num)]
+    return df.T
+
+
+def extract_kurtosis(time_series, num=16):
+    '''gets the kurtosis'''
+    if num is None:
+        num = len(time_series.columns)
+    df = pd.DataFrame(time_series.apply(kurtosis))
+    df.index = ['Kurtosis %d' % (i + 1) for i in range(num)]
+    return df.T
+
+
+def extract_skew(time_series, num=16):
+    '''gets the vars'''
+    if num is None:
+        num = len(time_series.columns)
+    df = pd.DataFrame(time_series.apply(skew))
+    df.index = ['Kurtosis %d' % (i + 1) for i in range(num)]
+    return df.T
+
+
+def extract_time_domain_parameters(time_series, num=16):
+    """Extract features for all the time domain"""
+    return pd.concat([extract_var(time_series, 16),
+                      extract_skew(time_series, 16),
+                      extract_kurtosis(time_series, 16),
+                      extract_correlations(time_series)], axis=1)
