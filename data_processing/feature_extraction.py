@@ -315,3 +315,39 @@ def extract_time_domain_parameters(time_series, num=16):
                       extract_skew(time_series, 16),
                       extract_kurtosis(time_series, 16),
                       extract_correlations(time_series)], axis=1)
+
+
+def extract_hfd_features(df, Kmax=5):
+    """ Compute Hjorth Fractal Dimension of a data frame with 16 time series data, kmax
+     is an HFD parameter
+
+    df --- an input dataframe including the signals for 16 channels (each column is for each channel)
+
+    return: a one-row dataframe with 16 features named hfd_1, hfd_2, ..., hfd_16.
+    """
+    index = 0
+    base = "hfd"
+    df_features = pd.DataFrame(index=[0], columns=[(base + str(i)) for i in range(1, 17)])
+    df_features
+    for column in df:
+        X = df[column].tolist()
+        L = []
+        x = []
+        N = len(X)
+        for k in range(1, Kmax):
+            Lk = []
+            for m in range(0, k):
+                Lmk = 0
+                for i in range(1, int(np.floor((N - m) / k))):
+                    Lmk += abs(X[m + i * k] - X[m + i * k - k])
+                Lmk = Lmk * (N - 1) / np.floor((N - m) / float(k)) / k
+                Lk.append(Lmk)
+            L.append(np.log(np.mean(Lk)))
+            x.append([np.log(float(1) / k), 1])
+
+        (p, r1, r2, s) = np.linalg.lstsq(x, L)
+
+        df_features.iloc[0, index] = p[0]
+        index += 1
+
+    return df_features
