@@ -1,11 +1,23 @@
-from
+# Functions for transforming the data
+import numpy as np
+import pandas as pd
+import seaborn as sns
+
+
+def scale(x):
+    """scales a Pandas series by subtracting the mean and dividing by std
+    Parameters:
+        x(pd.Series): The series to scale
+    Returns:
+        x_scaled(pd.Series)"""
+    return (x - np.mean(x)) / np.std(x)
 
 
 def plot_ts(tsdata, columns=-1):
     """plots the timeseries
     Parameters:
         tsdata(pd.DataFrame): the data
-        column: the columns to use
+        columns: the columns to use
     """
 
     if columns > 0:
