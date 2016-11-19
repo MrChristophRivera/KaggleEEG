@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import numpy as np
 import numpy.linalg as la
 import pandas as pd
@@ -57,7 +60,7 @@ def psi_rir(psd_series, index=0):
     This is using the standard bands of:
         δ(0.5–4Hz), θ(4–7Hz), α(8–12Hz), β(12–30Hz), and γ(30–100Hz)
     Parameters:
-        psd_df(pd.DataFrame): a data frame with index frequencies and power.
+        psd_series(pd.DataFrame): a data frame with index frequencies and power.
         index(int): an index for labeling
     Returns:
         bands_df(pd.DataFrame): a data frame with the band sums
@@ -113,40 +116,40 @@ def psi(psd_series, index=0):
     This is using the standard bands of:
         δ(0.5–4Hz), θ(4–7Hz), α(8–12Hz), β(12–30Hz), and γ(30–100Hz)
     Parameters:
-        psd_df(pd.DataFrame): a data frame with index frequencies and power.
+        psd_series(pd.DataFrame): a data frame with index frequencies and power.
         index(int): an index for labeling
     Returns:
         bands_df(pd.DataFrame): a data frame with the band sums
     """
 
-    # compute the values for the psi and place into an array
-    psi = pd.Series([psd_series[psd_series.between(0.5, 4)].sum(),
-                     psd_series[psd_series.between(4, 7)].sum(),
-                     psd_series[psd_series.between(8, 12)].sum(),
-                     psd_series[psd_series.between(12, 30)].sum(),
-                     psd_series[psd_series.between(30, 70)].sum(),
-                     psd_series[psd_series.between(70, 180)].sum()
-                     ])
+    # compute the values for the psi_ and place into an array
+    psi_ = pd.Series([psd_series[psd_series.between(0.5, 4)].sum(),
+                      psd_series[psd_series.between(4, 7)].sum(),
+                      psd_series[psd_series.between(8, 12)].sum(),
+                      psd_series[psd_series.between(12, 30)].sum(),
+                      psd_series[psd_series.between(30, 70)].sum(),
+                      psd_series[psd_series.between(70, 180)].sum()
+                      ])
 
-    psi.index = ['channel %d δ(0.5–4Hz)' % (index + 1),
-                 'channel %d θ(4–7Hz)' % (index + 1),
-                 'channel %d α(8–12Hz)' % (index + 1),
-                 'channel %d  β(12–30Hz)' % (index + 1),
-                 'channel %d low γ(30–70Hz)' % (index + 1),
-                 'channel %d high γ(70–180Hz)' % (index + 1)]
-    return pd.DataFrame(psi)
+    psi_.index = ['channel %d δ(0.5–4Hz)' % (index + 1),
+                  'channel %d θ(4–7Hz)' % (index + 1),
+                  'channel %d α(8–12Hz)' % (index + 1),
+                  'channel %d  β(12–30Hz)' % (index + 1),
+                  'channel %d low γ(30–70Hz)' % (index + 1),
+                  'channel %d high γ(70–180Hz)' % (index + 1)]
+    return pd.DataFrame(psi_)
 
 
 def rir(psis_df, index=0):
     """computes the Relative Intensity Ratio given Spectral bands as a data frame"""
     # make a copy
-    rir_df = psis_df.copy()
+    rir_df_ = psis_df.copy()
 
     # compute the rir, update the index name and return
-    rir_df = rir_df / rir_df.sum()
+    rir_df_ = rir_df_ / rir_df_.sum()
 
-    rir_df.index = ['channel %d RIR %d ' % (index + 1, i + 1) for i in range(len(rir_df))]
-    return rir_df
+    rir_df_.index = ['channel %d RIR %d ' % (index + 1, i + 1) for i in range(len(rir_df_))]
+    return rir_df_
 
 
 def spectral_entropy(rir):
@@ -218,12 +221,12 @@ class FFT_Features(object):
         psi_df = pd.concat(self.psi).T
         rir_df = pd.concat(self.rir).T
         features = pd.concat([psi_df, rir_df, self.correlation, self.spectral_entropy], axis=1)
-        self.features = features.apply(lambda x: float(x))
+        self.features = pd.DataFrame(features.apply(lambda x: float(x)))
 
 
 def extract_fft_features(time_series):
     '''Given ts returns a df of features from freq domain'''
-    return FFT_Features(time_series).features
+    return FFT_Features(time_series).features.T
 
 
 ########################################################################################################################
@@ -309,14 +312,6 @@ def extract_skew(time_series, num=16):
     return df.T
 
 
-def extract_time_domain_parameters(time_series, num=16):
-    """Extract features for all the time domain"""
-    return pd.concat([extract_var(time_series, 16),
-                      extract_skew(time_series, 16),
-                      extract_kurtosis(time_series, 16),
-                      extract_correlations(time_series)], axis=1)
-
-
 def extract_hfd_features(df, Kmax=5):
     """ Compute Hjorth Fractal Dimension of a data frame with 16 time series data, kmax
      is an HFD parameter
@@ -351,3 +346,14 @@ def extract_hfd_features(df, Kmax=5):
         index += 1
 
     return df_features
+
+
+def extract_time_domain_features(time_series, num=16):
+    """Extract features for all the time domain"""
+    return pd.concat([extract_var(time_series, 16),
+                      extract_skew(time_series, 16),
+                      extract_kurtosis(time_series, 16),
+                      extract_correlations(time_series),
+                      extract_hfd_features(time_series),
+                      extract_petrosian_fd(time_series)
+                      ], axis=1)
