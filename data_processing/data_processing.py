@@ -204,3 +204,4 @@ class Processor(object):
         """ Normalize data frame.
         """
         return df
+
