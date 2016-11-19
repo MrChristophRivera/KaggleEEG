@@ -1,7 +1,9 @@
 # Functions for handling data processing
 
 from os import listdir
-from os.path import join, split
+from os.path import join, split, isfile
+import dask.multiprocessing
+from dask import compute, delayed
 
 import numpy as np
 import pandas as pd
@@ -143,12 +145,11 @@ def get_stats():
 
 
 class Processor(object):
-
     def __init__(self, list_of_functions, dtrend=None):
         self.list_of_functions = list_of_functions
         self.dtrend = dtrend
 
-    def process_folder(train_path, function_name):
+    def process_folder(self, train_path, function_name):
         """ Apply function to all files in
         """
         seizure_df = pd.DataFrame()
@@ -157,7 +158,8 @@ class Processor(object):
         print(train_path)
         for patient_path in train_path:
             # This is how I speed up processing 4x by making full use of all cores in the CPUs.
-            values = [delayed(function_name)('\\'.join([patient_path, f])) for f in listdir(patient_path) if isfile('/'.join([patient_path, f]))]
+            values = [delayed(function_name)('\\'.join([patient_path, f])) for f in listdir(patient_path) if
+                      isfile('/'.join([patient_path, f]))]
             result = compute(*values, get=dask.multiprocessing.get)
             results.append(result)
         return results
@@ -173,13 +175,14 @@ class Processor(object):
         :param dtrend (string):  Must be  'None', 'mean', 'median'
         :return:
         """
-        base_path, target_path, f = fname.split('\\')
-        path = '\\'.join([base_path, target_path])
-        print('processing', path, f)
-        df, sampling_rate, sequence = load_data(join(path, f))
+        print(fname)
+        # base_path, target_path, f = fname.split('\\')
+        # path = '\\'.join([base_path, target_path])
+        # print('processing', path, f)
+        df, sampling_rate, sequence = load_data(join(fname))
         df = self.normalize(df)
         # Determine if this is an inter or preictal dataset and put in corresponding bucket.
-        split_string = f.replace('.', '_').split('_')
+        split_string = fname.split('/').pop().replace('.', '_').split('_')
         feature_df_list = []
         for func in self.list_of_functions:
             # Process function and append index columns
@@ -189,14 +192,15 @@ class Processor(object):
         feature_df = self.append_index(feature_df, split_string)
         return feature_df
 
-    def append_index(df, split_string):
+    def append_index(self, df, split_string):
         """ Append data set identifier and set index to identifier"""
         df['patient'] = split_string[0]
         df['dataset_id'] = split_string[1]
         df['pre_ictal'] = split_string[2]
+
         return df
 
-    def normalize(self):
+    def normalize(self, df):
         """ Normalize data frame.
         """
-        pass
+        return df
