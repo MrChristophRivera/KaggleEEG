@@ -200,15 +200,17 @@ class Processor(object):
         """
         df, sampling_rate, sequence = load_data(join(fname))
         df = self.normalize(df)
-        # Determine if this is an inter or preictal dataset and put in corresponding bucket.
-        split_string = fname.split('/').pop().replace('.', '_').split('_')
-        feature_df_list = []
-        for func in self.list_of_functions:
-            # Process function and append index columns
-            func_result_df = func(df)
-            feature_df_list.append(func_result_df)
-        feature_df = pd.concat(feature_df_list, 1)
-        feature_df = self.append_index(feature_df, split_string)
+        df = self.pre_process(df)
+        if not df.empty:
+            # Determine if this is an inter or preictal dataset and put in corresponding bucket.
+            split_string = fname.split('/').pop().replace('.', '_').split('_')
+            feature_df_list = []
+            for func in self.list_of_functions:
+                # Process function and append index columns
+                func_result_df = func(df)
+                feature_df_list.append(func_result_df)
+            feature_df = pd.concat(feature_df_list, 1)
+            feature_df = self.append_index(feature_df, split_string)
         return feature_df
 
     def append_index(self, df, split_string):
@@ -225,3 +227,6 @@ class Processor(object):
         """
         return df
 
+    def pre_process(self, df):
+        df = drop_nd_rows(df)
+        return df
