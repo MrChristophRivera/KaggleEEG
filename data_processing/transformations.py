@@ -14,6 +14,37 @@ def scale(x):
 
 
 ########################################################################################################################
+# imputation
+########################################################################################################################
+def impute_zeros(ts):
+    """Replaces the zeroes with the the mean of the surrounding values"""
+    ts = list(ts)
+    m = len(ts) / 2
+    if ts[m] != 0:
+        return ts[m]
+
+    else:
+        ts.pop(m)
+        return np.mean(ts)
+
+
+def impute_zeros_df(time_series_df, window=3):
+    """ replaces all zeors with the average value for the times series with rolling_apply"""
+
+    # get the first and last row
+    first_row = time_series_df.iloc[0, :]
+    last_row = time_series_df.iloc[-1, :]
+
+    # do the imputation
+    imputed = time_series_df.rolling(center=True, window=window).apply(func=impute_zeros)
+
+    # replace the rows
+    imputed.iloc[0, :] = first_row
+    imputed.iloc[-1, :] = last_row
+    return imputed
+
+
+########################################################################################################################
 # FFT transform related
 ########################################################################################################################
 
