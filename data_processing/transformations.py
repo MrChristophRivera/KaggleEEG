@@ -28,7 +28,7 @@ def impute_zeros(ts):
         return np.mean(ts)
 
 
-def impute_zeros_df(time_series_df, window=3):
+def impute_time_series(time_series_df, window=3):
     """ replaces all zeors with the average value for the times series with rolling_apply"""
 
     # get the first and last row
