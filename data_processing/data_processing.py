@@ -149,7 +149,7 @@ class Processor(object):
         self.list_of_functions = list_of_functions
         self.dtrend = dtrend
 
-    def process_folder(self, train_path, function_name):
+    def process_folder(self, train_path):
         """ Apply function to all files in
         """
         seizure_df = pd.DataFrame()
@@ -158,7 +158,7 @@ class Processor(object):
         print(train_path)
         for patient_path in train_path:
             # This is how I speed up processing 4x by making full use of all cores in the CPUs.
-            values = [delayed(function_name)('\\'.join([patient_path, f])) for f in listdir(patient_path) if
+            values = [delayed(self.process_file)('\\'.join([patient_path, f])) for f in listdir(patient_path) if
                       isfile('/'.join([patient_path, f]))]
             result = compute(*values, get=dask.multiprocessing.get)
             results.append(result)
