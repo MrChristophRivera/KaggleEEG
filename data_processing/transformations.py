@@ -44,6 +44,18 @@ def impute_time_series(time_series_df, window=3):
     return imputed
 
 
+def interpolate(df):
+    """Replaces zero values using linear interpolation"""
+
+    def replace_zeros(x):
+        if x == 0:
+            return np.nan
+
+    df = df.copy()
+    df = df.applymap(replace_zeros)
+    return df.interpolate(method='linear')
+
+
 ########################################################################################################################
 # FFT transform related
 ########################################################################################################################

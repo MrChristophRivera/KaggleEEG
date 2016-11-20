@@ -227,7 +227,6 @@ class Processor(object):
         if not df.empty:
             # Determine if this is an inter or preictal dataset and put in corresponding bucket.
             fname = split(fname)[1]
-            split_string = fname.replace('.', '_').split('_')
             feature_df_list = []
             for func in self.list_of_functions:
                 # Process function and append index columns
