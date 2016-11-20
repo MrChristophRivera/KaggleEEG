@@ -1,15 +1,16 @@
 # Functions for handling data processing
 
 from os import listdir
-from os.path import join, split, isfile
-import dask.multiprocessing
-from dask import compute, delayed
+from os.path import join, split
 
-import numpy as np
+import dask.multiprocessing
 import pandas as pd
+from dask import compute, delayed
 from scipy.io import loadmat
 
+from feature_extraction import extract_time_domain_features, extract_fft_features
 from transformations import impute_time_series
+
 
 def convert_index_to_timedelta(index, sampling_rate=400):
     """converts the index to time delta"""
@@ -17,7 +18,7 @@ def convert_index_to_timedelta(index, sampling_rate=400):
     return pd.to_timedelta(index, 's')
 
 
-def parse_filename(filename, split_file=False):
+def parse_filename(filename, split_file=True):
     """Parses m filename to get the pertinent information"""
     if split_file:
         filename = split(filename)[1]
@@ -37,6 +38,7 @@ def get_data_files(list_o_paths):
         file_names.extend(files)
 
     return file_names
+
 
 def load_data(path, convert_index=True):
     """converts the data to a pandas object
@@ -194,31 +196,19 @@ class Processor(object):
         self.list_of_functions = list_of_functions
         self.dtrend = dtrend
 
-    def get_data(self, folders, functions=None):
-        if functions is None:
-            functions = [...]
-
-        da_data = []
-        for folder in folders:
-            results = [df for df in self.process_folder(folder) if df is not None]
-            da_data.extend(results)
-
-        return pd.concat(da_data)
-
-    def process_folder(self, list_of_directories):
+    def process_data(self, list_of_directories):
         """ Apply function to all files in
         """
+
+        # get the file names
+        file_names = get_data_files(list_of_directories)
+
+        values = [delayed(self.process_file)(f) for f in file_names]
+
         seizure_df = pd.DataFrame()
         failures = []
-        results = []
-        print(train_path)
-        for patient_path in train_path:
-            # This is how I speed up processing 4x by making full use of all cores in the CPUs.
-            values = [delayed(self.process_file)('\\'.join([patient_path, f])) for f in listdir(patient_path) if
-                      isfile('/'.join([patient_path, f]))]
-            result = compute(*values, get=dask.multiprocessing.get)[0]
-            results.append(result)
-        return results
+        result = compute(*values, get=dask.multiprocessing.get)
+        return result
 
     def process_file(self, fname):
         """ Apply list of functions to file.
@@ -231,28 +221,29 @@ class Processor(object):
         :param dtrend (string):  Must be  'None', 'mean', 'median'
         :return:
         """
-        df, _, _ = load_data(join(fname))
-        # df = self.normalize(df)
+        df, _, _ = load_data(fname)
         df = self.pre_process(df)
+
         if not df.empty:
             # Determine if this is an inter or preictal dataset and put in corresponding bucket.
-            split_string = fname.split('/').pop().replace('.', '_').split('_')
+            fname = split(fname)[1]
+            split_string = fname.replace('.', '_').split('_')
             feature_df_list = []
             for func in self.list_of_functions:
                 # Process function and append index columns
                 func_result_df = func(df)
                 feature_df_list.append(func_result_df)
             feature_df = pd.concat(feature_df_list, 1)
-            feature_df = self.append_index(feature_df, split_string)
+            feature_df = self.append_index(feature_df, fname)
             return feature_df
         return None
 
-    def append_index(self, df, split_string):
+    def append_index(self, df, file_name):
         """ Append data set identifier and set index to identifier"""
-        path, patient_id = split_string[0].split('\\')
+        patient_id, data_set_id, condition = parse_filename(file_name)
         df['patient'] = patient_id
-        df['dataset_id'] = split_string[1]
-        df['pre_ictal'] = split_string[2]
+        df['dataset_id'] = data_set_id
+        df['pre_ictal'] = condition
 
         return df
 
