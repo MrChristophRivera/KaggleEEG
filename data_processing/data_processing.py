@@ -9,12 +9,34 @@ import numpy as np
 import pandas as pd
 from scipy.io import loadmat
 
+from transformations import impute_time_series
 
 def convert_index_to_timedelta(index, sampling_rate=400):
     """converts the index to time delta"""
     index = [i * 1.0 / sampling_rate for i in index]
     return pd.to_timedelta(index, 's')
 
+
+def parse_filename(filename, split_file=False):
+    """Parses m filename to get the pertinent information"""
+    if split_file:
+        filename = split(filename)[1]
+
+    # strip out the .mat
+    filename = filename.replace('.mat', '')
+
+    # parse the remaing part
+    return [int(part) for part in filename.split('_')]
+
+
+def get_data_files(list_o_paths):
+    """This gets the data matlab files"""
+    file_names = []
+    for path in list_o_paths:
+        files = [join(path, f) for f in listdir(path) if f.endswith('.mat')]
+        file_names.extend(files)
+
+    return file_names
 
 def load_data(path, convert_index=True):
     """converts the data to a pandas object
@@ -172,7 +194,18 @@ class Processor(object):
         self.list_of_functions = list_of_functions
         self.dtrend = dtrend
 
-    def process_folder(self, train_path):
+    def get_data(self, folders, functions=None):
+        if functions is None:
+            functions = [...]
+
+        da_data = []
+        for folder in folders:
+            results = [df for df in self.process_folder(folder) if df is not None]
+            da_data.extend(results)
+
+        return pd.concat(da_data)
+
+    def process_folder(self, list_of_directories):
         """ Apply function to all files in
         """
         seizure_df = pd.DataFrame()
@@ -183,7 +216,7 @@ class Processor(object):
             # This is how I speed up processing 4x by making full use of all cores in the CPUs.
             values = [delayed(self.process_file)('\\'.join([patient_path, f])) for f in listdir(patient_path) if
                       isfile('/'.join([patient_path, f]))]
-            result = compute(*values, get=dask.multiprocessing.get)
+            result = compute(*values, get=dask.multiprocessing.get)[0]
             results.append(result)
         return results
 
@@ -198,8 +231,8 @@ class Processor(object):
         :param dtrend (string):  Must be  'None', 'mean', 'median'
         :return:
         """
-        df, sampling_rate, sequence = load_data(join(fname))
-        df = self.normalize(df)
+        df, _, _ = load_data(join(fname))
+        # df = self.normalize(df)
         df = self.pre_process(df)
         if not df.empty:
             # Determine if this is an inter or preictal dataset and put in corresponding bucket.
@@ -211,7 +244,8 @@ class Processor(object):
                 feature_df_list.append(func_result_df)
             feature_df = pd.concat(feature_df_list, 1)
             feature_df = self.append_index(feature_df, split_string)
-        return feature_df
+            return feature_df
+        return None
 
     def append_index(self, df, split_string):
         """ Append data set identifier and set index to identifier"""
@@ -229,4 +263,68 @@ class Processor(object):
 
     def pre_process(self, df):
         df = drop_nd_rows(df)
+
+        if not df.empty:
+            df = impute_time_series(df)
         return df
+
+
+########################################################################################################################
+# stuff
+########################################################################################################################
+
+
+
+def map_functions(data, functions):
+    """maps a list of functions to data and returns as a list of results
+    Parameters:
+        data: data to be computed on
+        functions(list): a list of functions
+    Returns:
+        results(list): a list of the results
+    """
+    return [fun(data) for fun in functions]
+
+
+def process_data(file_name, functions=None):
+    """Processes one file at a time for extracting features
+    Parameters:
+        file_name(str): the file name
+        functions(list): a list of functions for extracting features
+    Returns:
+        res(pd.DataFrame): a one row data frame with the features in the columns
+    """
+
+    if functions is None:
+        functions = [extract_time_domain_features, extract_fft_features]
+
+    # get the time series and parse the filename for the info
+    time_series = load_data(file_name, True)[0]
+    patient, number, condition = parse_filename(file_name, True)
+
+    # create an index and prefix df
+    index = pd.MultiIndex.from_tuples([(patient, number, condition)],
+                                      names=['Patient', 'TraceNumber', 'Condition'])
+
+    prefix_df = pd.DataFrame({'Patient': patient,
+                              'TraceNumber': number,
+                              'Condition': condition},
+                             index=[0]
+                             )
+
+    # create a list two hold the data frames, call the functions and then concatenate the resulting dataframes
+    res = [prefix_df]
+    res.extend(map_functions(time_series, functions))
+    res = pd.concat(res, axis=1)
+    res.index = index
+    return res
+
+
+def process_multiple_data(files):
+    """uses dask to process many files in parallel"""
+    # set up the compute graph
+    graph = delayed([delayed(process_data)(file_) for file_ in files])
+    # compute the graph
+    results = compute(graph)
+
+    return pd.concat([results[0][i] for i in range(len(files))])
