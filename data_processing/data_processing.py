@@ -46,6 +46,29 @@ def load_data(path, convert_index=True):
     return df, sampling_rate, sequence
 
 
+def detect_whole_file_dropout(df):
+    """ Detect dataframe that is entirely full of dropout values
+
+    To do this sum up the entire dataframe.
+
+    :param df: Data Dataframe to calculate
+    :return: df: Dataframe with sum of sums of entire dataframe.
+    """
+    new_df = pd.DataFrame({'df_sum': [df.sum().sum()]})
+    return new_df
+
+
+def drop_nd_rows(df):
+    """ Drop rows that have all 0 across all columns
+
+    :param df: Data Dataframe to calculate
+    :return: df: Data Dataframe with dropped row.
+    """
+    dropout_rows = df[(df.sum(axis=1) == 0)].index
+    df.drop(dropout_rows)
+    return df
+
+
 def extract_base_stats(data, patient=1, number=1, condition=0):
     """extracts the mean, variance, skew and kurtosis of a given data set of data set
     data(dataframe): a given data set
@@ -175,10 +198,6 @@ class Processor(object):
         :param dtrend (string):  Must be  'None', 'mean', 'median'
         :return:
         """
-        print(fname)
-        # base_path, target_path, f = fname.split('\\')
-        # path = '\\'.join([base_path, target_path])
-        # print('processing', path, f)
         df, sampling_rate, sequence = load_data(join(fname))
         df = self.normalize(df)
         # Determine if this is an inter or preictal dataset and put in corresponding bucket.
@@ -194,7 +213,8 @@ class Processor(object):
 
     def append_index(self, df, split_string):
         """ Append data set identifier and set index to identifier"""
-        df['patient'] = split_string[0]
+        path, patient_id = split_string[0].split('\\')
+        df['patient'] = patient_id
         df['dataset_id'] = split_string[1]
         df['pre_ictal'] = split_string[2]
 
