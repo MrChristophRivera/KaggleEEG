@@ -312,3 +312,4 @@ def process_multiple_data(files):
     results = compute(graph)
 
     return pd.concat([results[0][i] for i in range(len(files))])
+
