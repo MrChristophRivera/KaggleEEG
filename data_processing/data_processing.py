@@ -185,13 +185,13 @@ class Processor(object):
     def __init__(self, list_of_functions, dtrend=None):
 
         if list_of_functions is None:
-            list_of_functinos = [extract_time_domain_features, extract_fft_features]
+            list_of_functions = [extract_time_domain_features, extract_fft_features]
 
         self.list_of_functions = list_of_functions
         self.dtrend = dtrend
 
     def process_data(self, list_of_directories):
-        """ Apply function to all files in
+        """ process all files in a list
         """
 
         # get the file names
@@ -204,7 +204,7 @@ class Processor(object):
         result = compute(*values, get=dask.multiprocessing.get)
         return result
 
-    def process_file(self, fname):
+    def process_file(self, fname, list_of_functions):
         """ Apply list of functions to file.
 
         Each function should return a dataframe with x columns and 1 row. The number of columns is equal to features
@@ -254,8 +254,6 @@ class Processor(object):
 ########################################################################################################################
 # stuff
 ########################################################################################################################
-
-
 
 def map_functions(data, functions):
     """maps a list of functions to data and returns as a list of results
