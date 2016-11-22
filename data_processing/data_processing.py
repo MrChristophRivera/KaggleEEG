@@ -182,7 +182,7 @@ def get_stats():
 
 
 class Processor(object):
-    def __init__(self, list_of_functions, dtrend=None):
+    def __init__(self, list_of_functions=None, dtrend=None):
 
         if list_of_functions is None:
             list_of_functions = [extract_time_domain_features, extract_fft_features]
@@ -204,7 +204,7 @@ class Processor(object):
         result = compute(*values, get=dask.multiprocessing.get)
         return result
 
-    def process_file(self, fname, list_of_functions):
+    def process_file(self, fname):
         """ Apply list of functions to file.
 
         Each function should return a dataframe with x columns and 1 row. The number of columns is equal to features
@@ -212,7 +212,7 @@ class Processor(object):
 
         :param fname:
         :param list_of_functions:
-        :param dtrend (string):  Must be  'None', 'mean', 'median'
+        :param dtrend (str or None):  Must be  'None', 'mean', 'median'
         :return:
         """
         df, _, _ = load_data(fname)
@@ -239,6 +239,10 @@ class Processor(object):
     def normalize(self, df):
         """ Normalize data frame.
         """
+        if self.detrend == 'mean':
+            return df - df.mean()
+        if self.detrend == 'median':
+            return df - df.median()
         return df
 
     def pre_process(self, df):
