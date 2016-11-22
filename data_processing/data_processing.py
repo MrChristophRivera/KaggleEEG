@@ -9,7 +9,7 @@ from dask import compute, delayed
 from scipy.io import loadmat
 
 from feature_extraction import extract_time_domain_features, extract_fft_features
-from transformations import impute_time_series
+from transformations import interpolate_zeros, replace_outliers_with_zeros
 
 
 def convert_index_to_timedelta(index, sampling_rate=400):
@@ -120,16 +120,6 @@ def extract_base_stats(data, patient=1, number=1, condition=0):
     return res
 
 
-def parse_filename(filename):
-    """Parses m filename to get the pertinent information"""
-
-    # strip out the .mat
-    filename = filename.replace('.mat', '')
-
-    # parse the remaing part
-    return [int(part) for part in filename.split('_')]
-
-
 def count_files(directory):
     """counts the number of files per condition for each patient in a directory"""
 
@@ -193,6 +183,10 @@ def get_stats():
 
 class Processor(object):
     def __init__(self, list_of_functions, dtrend=None):
+
+        if list_of_functions is None:
+            list_of_functinos = [extract_time_domain_features, extract_fft_features]
+
         self.list_of_functions = list_of_functions
         self.dtrend = dtrend
 
@@ -255,7 +249,8 @@ class Processor(object):
         df = drop_nd_rows(df)
 
         if not df.empty:
-            df = impute_time_series(df)
+            df = interpolate_zeros(df)
+            df = replace_outliers_with_zeros(df)
         return df
 
 

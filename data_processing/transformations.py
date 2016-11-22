@@ -1,6 +1,7 @@
 # Functions for transforming the data
 import numpy as np
 import pandas as pd
+from outliers import smirnov_grubbs as grubbs
 from scipy import signal
 
 
@@ -44,8 +45,13 @@ def impute_time_series(time_series_df, window=3):
     return imputed
 
 
-def interpolate(df):
-    """Replaces zero values using linear interpolation"""
+def interpolate_zeros(df):
+    """Replaces zero values using linear interpolation
+    Parameters:
+        df(pd.DataFrame): a data frame with numeric values
+    Returns:
+        df
+    """
 
     def replace_zeros(x):
         if x == 0:
@@ -54,6 +60,22 @@ def interpolate(df):
     df = df.copy()
     df = df.applymap(replace_zeros)
     return df.interpolate(method='linear')
+
+
+def replace_outliers(x, alpha_input=0.001, val=0.0):
+    """Detect the outliers of a series using Smirnov_grubbs test and replace the outliers with zeros
+       Please install the outlier-utils library first
+       pip install outlier-utils
+    """
+    outliers_indices = grubbs.two_sided_test_indices(x, alpha=alpha_input)
+    x.loc[outliers_indices] = val
+    return x
+
+
+def replace_outliers_with_zeros(df, alpha_input=0.001):
+    """Detect the outliers of a dataframe using Smirnov_grubbs test and replace the outliers with zeros"""
+
+    return df.apply(replace_outliers)
 
 
 ########################################################################################################################
