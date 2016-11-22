@@ -201,8 +201,10 @@ class Processor(object):
 
         # seizure_df = pd.DataFrame()
         # failures = []
-        result = compute(*values, get=dask.multiprocessing.get)
-        return result
+        results = compute(*values, get=dask.multiprocessing.get)
+        results = [res for res in results if res]
+        return pd.concat(results)
+
 
     def process_file(self, fname):
         """ Apply list of functions to file.
