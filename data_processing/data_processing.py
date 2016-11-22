@@ -199,8 +199,8 @@ class Processor(object):
 
         values = [delayed(self.process_file)(f) for f in file_names]
 
-        seizure_df = pd.DataFrame()
-        failures = []
+        # seizure_df = pd.DataFrame()
+        # failures = []
         result = compute(*values, get=dask.multiprocessing.get)
         return result
 
@@ -221,11 +221,7 @@ class Processor(object):
         if not df.empty:
             # Determine if this is an inter or preictal dataset and put in corresponding bucket.
             fname = split(fname)[1]
-            feature_df_list = []
-            for func in self.list_of_functions:
-                # Process function and append index columns
-                func_result_df = func(df)
-                feature_df_list.append(func_result_df)
+            feature_df_list = [fun(df) for fun in self.list_of_functions]
             feature_df = pd.concat(feature_df_list, 1)
             feature_df = self.append_index(feature_df, fname)
             return feature_df
@@ -246,11 +242,12 @@ class Processor(object):
         return df
 
     def pre_process(self, df):
+        """pre-processes data to remove rows with all zeros, remove outliers and impute zeros"""
         df = drop_nd_rows(df)
 
         if not df.empty:
-            df = interpolate_zeros(df)
             df = replace_outliers_with_zeros(df)
+            df = interpolate_zeros(df)
         return df
 
 
