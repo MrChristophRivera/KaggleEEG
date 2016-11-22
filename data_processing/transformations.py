@@ -56,6 +56,7 @@ def interpolate_zeros(df):
     def replace_zeros(x):
         if x == 0:
             return np.nan
+        return x
 
     df = df.copy()
     df = df.applymap(replace_zeros)
