@@ -203,7 +203,6 @@ class Processor(object):
         results = [res for res in results if res]
         return pd.concat(results)
 
-
     def process_file(self, fname):
         """ Apply list of functions to file.
 
@@ -215,11 +214,11 @@ class Processor(object):
         :param dtrend (str or None):  Must be  'None', 'mean', 'median'
         :return:
         """
-        df, _, _ = load_data(fname)
+        df, _, _ = load_data(fname, convert_index=True)
         df = self.pre_process(df)
 
         # only do the below if df is empty and no nulls
-        if not df.empty and df.isnull().sum().sum() == 0:
+        if not df.empty:
             # Determine if this is an inter or preictal dataset and put in corresponding bucket.
             fname = split(fname)[1]
             feature_df_list = [fun(df) for fun in self.list_of_functions]
@@ -253,6 +252,10 @@ class Processor(object):
         if not df.empty:
             df = replace_outliers_with_zeros(df)
             df = interpolate_zeros(df)
+
+            # fill all na values to ensure removed.
+            df.fillna(method='ffill', inplace=True)
+            df.fillna(method='bill', inplace=True)
         return df
 
 
@@ -287,9 +290,6 @@ def process_data(file_name, functions=None):
     time_series = load_data(file_name, True)[0]
     time_series = drop_nd_rows(time_series)
 
-
-
-
     patient, number, condition = parse_filename(file_name, True)
 
     # create an index and prefix df
@@ -318,4 +318,3 @@ def process_multiple_data(files):
     results = compute(graph)
 
     return pd.concat([results[0][i] for i in range(len(files))])
-
