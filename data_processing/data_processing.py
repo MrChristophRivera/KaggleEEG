@@ -200,7 +200,7 @@ class Processor(object):
         # seizure_df = pd.DataFrame()
         # failures = []
         results = compute(*values, get=dask.multiprocessing.get)
-        results = [res for res in results if res]
+        results = [res for res in results if res is not None]
         return pd.concat(results)
 
     def process_file(self, fname):
@@ -255,7 +255,7 @@ class Processor(object):
 
             # fill all na values to ensure removed.
             df.fillna(method='ffill', inplace=True)
-            df.fillna(method='bill', inplace=True)
+            df.fillna(method='bfill', inplace=True)
         return df
 
 
