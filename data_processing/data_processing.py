@@ -88,9 +88,7 @@ def drop_nd_rows(df):
     :param df: Data Dataframe to calculate
     :return: df: Data Dataframe with dropped row.
     """
-    dropout_rows = df[(df.sum(axis=1) == 0)].index
-    df.drop(dropout_rows)
-    return df
+    return df.loc[df.sum(axis=1) != 0].copy()
 
 
 def extract_base_stats(data, patient=1, number=1, condition=0):
@@ -220,7 +218,8 @@ class Processor(object):
         df, _, _ = load_data(fname)
         df = self.pre_process(df)
 
-        if not df.empty:
+        # only do the below if df is empty and no nulls
+        if not df.empty and df.isnull().sum().sum() == 0:
             # Determine if this is an inter or preictal dataset and put in corresponding bucket.
             fname = split(fname)[1]
             feature_df_list = [fun(df) for fun in self.list_of_functions]
@@ -286,6 +285,11 @@ def process_data(file_name, functions=None):
 
     # get the time series and parse the filename for the info
     time_series = load_data(file_name, True)[0]
+    time_series = drop_nd_rows(time_series)
+
+
+
+
     patient, number, condition = parse_filename(file_name, True)
 
     # create an index and prefix df
