@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from outliers import smirnov_grubbs as grubbs
 from scipy import signal
-
+from scipy.stats import iqr
 
 def scale(x):
     """scales a Pandas series by subtracting the mean and dividing by std
@@ -53,17 +53,10 @@ def interpolate_zeros(df):
         df
     """
 
-    def replace_zeros(x):
-        if x == 0:
-            return np.nan
-        return x
-
-    df = df.copy()
-    df = df.applymap(replace_zeros)
-    return df.interpolate(method='linear')
+    return df.replace(to_replace=0.0, value=np.nan).interpolate(method='linear')
 
 
-def replace_outliers(x, alpha_input=0.001, val=0.0):
+def replace_outliers_grubs(x, alpha_input=0.001, val=0.0):
     """Detect the outliers of a series using Smirnov_grubbs test and replace the outliers with zeros
        Please install the outlier-utils library first
        pip install outlier-utils
@@ -76,7 +69,22 @@ def replace_outliers(x, alpha_input=0.001, val=0.0):
 def replace_outliers_with_zeros(df, alpha_input=0.001):
     """Detect the outliers of a dataframe using Smirnov_grubbs test and replace the outliers with zeros"""
 
-    return df.apply(replace_outliers)
+    return df.apply(replace_outliers_grubs)
+
+
+def replace_outliers(s, factor=2.0, replacement=0.0):
+    """ convert outliers to zero
+    Parameters:
+        s(pd.Series): the input series
+        factor(float): the factor to multiply the interquartile range
+    Returns:
+        replacement(float): the value for which to replace
+    """
+    s = s.copy()
+    iqr_ = iqr(s)
+    outliers = s.between(-factor * iqr_, factor * iqr_) == False
+    s.loc[outliers] = replacement
+    return s
 
 
 ########################################################################################################################

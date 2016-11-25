@@ -9,7 +9,7 @@ from dask import compute, delayed
 from scipy.io import loadmat
 
 from feature_extraction import extract_time_domain_features, extract_fft_features
-from transformations import interpolate_zeros, replace_outliers_with_zeros
+from transformations import interpolate_zeros, replace_outliers_with_zeros, replace_outliers
 
 
 def convert_index_to_timedelta(index, sampling_rate=400):
@@ -214,7 +214,12 @@ class Processor(object):
         :param dtrend (str or None):  Must be  'None', 'mean', 'median'
         :return:
         """
-        df, _, _ = load_data(fname, convert_index=True)
+
+        try:
+            df, _, _ = load_data(fname, convert_index=False)
+        except ValueError:
+            return None
+
         df = self.pre_process(df)
 
         # only do the below if df is empty and no nulls
@@ -250,7 +255,7 @@ class Processor(object):
         df = drop_nd_rows(df)
 
         if not df.empty:
-            df = replace_outliers_with_zeros(df)
+            df = df.apply(replace_outliers, factor=3.0)
             df = interpolate_zeros(df)
 
             # fill all na values to ensure removed.
