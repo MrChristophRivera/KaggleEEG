@@ -9,7 +9,7 @@ from dask import compute, delayed
 from scipy.io import loadmat
 
 from feature_extraction import extract_time_domain_features, extract_fft_features
-from transformations import interpolate_zeros, replace_outliers_with_zeros, replace_outliers
+from transformations import interpolate_zeros, replace_outliers
 
 
 def convert_index_to_timedelta(index, sampling_rate=400):
@@ -221,6 +221,9 @@ class Processor(object):
             return None
 
         df = self.pre_process(df)
+
+        if df.isnull().sum().sum() > 0:
+            return None
 
         # only do the below if df is empty and no nulls
         if not df.empty:
