@@ -253,6 +253,7 @@ class Processor(object):
     def pre_process(self, df):
         """pre-processes data to remove rows with all zeros, remove outliers and impute zeros"""
         df = drop_nd_rows(df)
+        mean_ = df.mean()
 
         if not df.empty:
             df = df.apply(replace_outliers, factor=3.0)
@@ -261,6 +262,7 @@ class Processor(object):
             # fill all na values to ensure removed.
             df.fillna(method='ffill', inplace=True)
             df.fillna(method='bfill', inplace=True)
+            df.fillna(mean_)
         return df
 
 
