@@ -26,7 +26,6 @@ def parse_filename(filename, split_file=True):
     # strip out the .mat
     filename = filename.replace('.mat', '')
 
-    # parse the remaing part
     return [int(part) for part in filename.split('_')]
 
 
@@ -180,13 +179,14 @@ def get_stats():
 
 
 class Processor(object):
-    def __init__(self, list_of_functions=None, dtrend=None):
+    def __init__(self, list_of_functions=None, dtrend=None, training=True):
 
         if list_of_functions is None:
             list_of_functions = [extract_time_domain_features, extract_fft_features]
 
         self.list_of_functions = list_of_functions
         self.dtrend = dtrend
+        self.training = training
 
     def process_data(self, list_of_directories):
         """ process all files in a list
@@ -231,7 +231,10 @@ class Processor(object):
             fname = split(fname)[1]
             feature_df_list = [fun(df) for fun in self.list_of_functions]
             feature_df = pd.concat(feature_df_list, 1)
-            feature_df = self.append_index(feature_df, fname)
+            if self.training:
+                feature_df = self.append_index(feature_df, fname)
+            else:
+                feature_df['filename'] = fname
             return feature_df
         return None
 
